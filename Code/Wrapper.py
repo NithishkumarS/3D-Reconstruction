@@ -52,19 +52,30 @@ from features import *
 import copy
 import itertools
 import random
-
+from GetInliersRANSAC import *
 
 def main():
     # Add any Command Line arguments here
     Parser = argparse.ArgumentParser()
     # Parser.add_argument('--NumFeatures', default=100, help='Number of best features to extract from each image, Default:100')
-    Parser.add_argument('--ImgDirectory', default='../Data/Train/Set1/',
-                        help='Directory that contains images for panorama sticking')
+    Parser.add_argument('--ImgDirectory', default='../Data/',
+                        help='Directory that contains images for Sfm')
 
-    Parser.add_argument('--compute_corners', default=True, help='Directory that contains images for panorama sticking')
+    # Parser.add_argument('--compute_corners', default=True, help='Directory that contains images for panorama sticking')
     Args = Parser.parse_args()
     ImgDirectory = Args.ImgDirectory
-    compute_corners = Args.compute_corners
+    Fundamental_matrix = {}
+    num_files = len(os.listdir(ImgDirectory))
+    images = []
+    for i in range(1, num_files + 1):
+        img = cv2.imread(ImgDirectory + str(i) + '.jpg')
+        # cv2.imshow('img',img)
+        # cv2.waitKey(0)
+        images.append(img)
+
+    for i in range(1, num_files+1):
+        F = getInliersRANSAC(img[i], img[i+1], iterations)
+
 
 
 if __name__ == '__main__':
