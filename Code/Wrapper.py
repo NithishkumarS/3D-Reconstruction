@@ -32,10 +32,11 @@ from GetInliersRANSAC import *
 from EssentialMatrixFromFundamentalMatrix import *
 from ExtractCameraPose import *
 from LinearTriangulation import *
+from DisambiguateCameraPose import *
 def getk():
-    K = [[568.996140852, 0, 643.21055941],
+    K = np.array([[568.996140852, 0, 643.21055941],
     [0, 568.988362396, 477.982801038],
-    [0, 0, 1]] 
+    [0, 0, 1]] )
     return K
 
 def main():
@@ -58,14 +59,16 @@ def main():
         images.append(img)
 
     iterations = 100
-    for i in range(1, 7):
-        print(type(img))
-        F,inliers = getInliersRANSAC(images[i], images[i+1], iterations)
+
+    data = getInliersRANSAC(iterations)
+    for key,info in data.items():
+        F = info[0]
+        inliers = info[1]
         E = getEssentialMatrix(F,getk())
         poses = ExtractCameraPose(E)
         points3D= LinearTriangulation(poses,inliers)
-        bestPose = DisambiguateCameraPose(poses,points3D)
-
+        bestPose,points3D = DisambiguateCameraPose(poses,points3D)
+        print(np.shape(points3D))
 
 if __name__ == '__main__':
     main()
