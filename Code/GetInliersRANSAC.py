@@ -1,7 +1,7 @@
 import numpy as np
 import random
 import sys
-# sys.path.remove('/opt/ros/kinetic/lib/python2.7/dist-packages')
+sys.path.remove('/opt/ros/kinetic/lib/python2.7/dist-packages')
 import cv2
 
 print(cv2.__version__)
@@ -109,13 +109,14 @@ def getInliersRANSAC(img1, img2, M):
                 if n <len(S):
                     n = len(S)
                     S_inliers = S
-        X1 = []
-        X2 = []
-        for r in random.sample(range(len(S)), k=8):
-            X1.append(c1[S_inliers[r]])
-            X2.append(c2[S_inliers[r]])
-        F = computeFundamentalMatrix(X1, X2)
-    return F
+    X1 = []
+    X2 = []
+    for r in random.sample(range(len(S)), k=8):
+        X1.append(c1[S_inliers[r]])
+        X2.append(c2[S_inliers[r]])
+    F = computeFundamentalMatrix(X1, X2)
+    print(F)
+    return F, S_inliers
 
 # importMatches()
 b = getInliersRANSAC(cv2.imread('../Data/1.jpg'),cv2.imread('../Data/2.jpg') , 1)
