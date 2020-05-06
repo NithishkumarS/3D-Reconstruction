@@ -52,7 +52,14 @@ from features import *
 import copy
 import itertools
 import random
-
+from EssentialMatrixFromFundamentalMatrix import getEssentialMatirx
+from ExtractCameraPose import *
+from LinearTriangulation import *
+def getk():
+    K = [[568.996140852, 0, 643.21055941],
+    [0, 568.988362396, 477.982801038],
+    [0, 0, 1]] 
+    return K
 
 def main():
     # Add any Command Line arguments here
@@ -65,6 +72,13 @@ def main():
     Args = Parser.parse_args()
     ImgDirectory = Args.ImgDirectory
     compute_corners = Args.compute_corners
+
+
+
+    E = getEssentialMatrix(F,getk())
+    poses = ExtractCameraPose(E)
+    points3D= LinearTriangulation(poses,matches)
+    bestPose = DisambiguateCameraPose(poses,points3D)
 
 
 if __name__ == '__main__':
