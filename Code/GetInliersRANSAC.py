@@ -5,6 +5,7 @@ import sys
 import cv2
 
 print(cv2.__version__)
+import fileinput, optparse
 # from matplotlib import pyplot as plt
 # from EstimateFundamentalMatrix import *
 
@@ -62,26 +63,60 @@ def getMatches(img1, img2):
 
     return matches
 
+def importMatches():
+    Matches = {}
+    for c in range(1,6):
+        with open('../Data/matching'+str(c)+'.txt','r') as f_open:
+            data = f_open.readline()
+            nFeaturers = int(data[11:])
+            for i in range(nFeaturers):
+                data = f_open.readline()
+                sections = data.split(' ')
+                nMatches = int(sections[0])
+                p1 = [float(sections[4]),float(sections[5])]
+                for j in range(nMatches-1):
+                    index = 6+(j*3)
+                    imgRef = sections[index]
+                    key = str(c)+imgRef
+                    p2 = [float(sections[index+1]),float(sections[index+2])]
+                    if key in Matches:
+                        x = Matches[key]
+                        x.append([p1,p2])
+                        Matches[key] = x
+                    else:
+                        Matches[key] = [[p1,p2]]
+    return Matches
+    
 def getInliersRANSAC(img1, img2, M):
 
-    matches = getMatches(img1,img2)
+    # matches = getMatches(img1,img2)
+    Matches = importMatches()
 
-    c1 = np.hstack((np.array(matches[0]), np.ones((len(c1),1))) )
-    c2 = np.hstack((np.array(matches[1]), np.ones((len(c2),1))) )
-    S_inliers = []
-    n = 0
-    for i in range(M):
+    for key,matches  in Matches.items():
+        c1 = np.hstack((np.array(matches)[:,0], np.ones((len(matches),1))) )
+        c2 = np.hstack((np.array(matches)[:,1], np.ones((len(matches),1))) )
+        S_inliers = []
+        n = 0
+        for i in range(M):
 
-        rand_idx = sample(range(len(c2)), k=8)
-        F = computeFundamentalMatrix(c1[rand_idx], c2[rand_idx])
-        S = []
-        for j in range(len(c1)):
-            x1, x2  = c1[j],c2[j]
-            if np.linalg.det( np.dot(np.dot(x2.T, F),x1) ) < episilon:
-                S.append(j)
+            rand_idx = random.sample(range(len(c2)), k=8)
+            F = computeFundamentalMatrix(c1[rand_idx], c2[rand_idx])
+            S = []
+            for j in range(len(c1)):
+                x1, x2  = c1[j],c2[j]
+                if np.linalg.det( np.dot(np.dot(x2.T, F),x1) ) < episilon:
+                    S.append(j)
 
-            if n <len(S):
-                n = len(S)
-                S_inliers = S
-    return F,S_inliers
-a = getMatches(cv2.imread('../Data/1.jpg'),cv2.imread('../Data/2.jpg') )
+                if n <len(S):
+                    n = len(S)
+                    S_inliers = S
+        X1 = []
+        X2 = []
+        for r in sample(range(len(S)), k=8):
+            X1.append(c1[S_inliers[r]])
+            X2.append(c2[S_inliers[r]])
+        F = computeFundamentalMatrix(X1, X2)
+    return F
+
+# importMatches()
+b = getInliersRANSAC(cv2.imread('../Data/1.jpg'),cv2.imread('../Data/2.jpg') , 1)
