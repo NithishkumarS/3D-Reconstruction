@@ -7,7 +7,7 @@ import cv2
 print(cv2.__version__)
 import fileinput, optparse
 # from matplotlib import pyplot as plt
-# from EstimateFundamentalMatrix import *
+from EstimateFundamentalMatrix import *
 
 def getMatches(img1, img2):
     # Initiate SIFT detector
@@ -91,20 +91,19 @@ def getInliersRANSAC(img1, img2, M):
 
     # matches = getMatches(img1,img2)
     Matches = importMatches()
-
+    episilon = 10
     for key,matches  in Matches.items():
         c1 = np.hstack((np.array(matches)[:,0], np.ones((len(matches),1))) )
         c2 = np.hstack((np.array(matches)[:,1], np.ones((len(matches),1))) )
         S_inliers = []
         n = 0
         for i in range(M):
-
             rand_idx = random.sample(range(len(c2)), k=8)
             F = computeFundamentalMatrix(c1[rand_idx], c2[rand_idx])
             S = []
             for j in range(len(c1)):
                 x1, x2  = c1[j],c2[j]
-                if np.linalg.det( np.dot(np.dot(x2.T, F),x1) ) < episilon:
+                if np.dot(np.dot(x2.T, F),x1) < episilon:
                     S.append(j)
 
                 if n <len(S):
@@ -112,7 +111,7 @@ def getInliersRANSAC(img1, img2, M):
                     S_inliers = S
         X1 = []
         X2 = []
-        for r in sample(range(len(S)), k=8):
+        for r in random.sample(range(len(S)), k=8):
             X1.append(c1[S_inliers[r]])
             X2.append(c2[S_inliers[r]])
         F = computeFundamentalMatrix(X1, X2)
