@@ -6,14 +6,14 @@ def ExtractCameraPose(E):
 	W = [[0,-1,0],[1,0,0],[0,0,1]]
 	U,S,V = np.linalg.svd(E)
 
-	C1 = U(:,3)
-	R1 = U@W@V
-	C2 = -U(:,3)
-	R2 = U@W@V
-	C3 = U(:,3)
-	R3 = U@W.T@V.T
-	C4 = -U(:,3)
-	R4 = U@W.T@V.T
+	C1 = U[:,3]
+	R1 = np.dot(np.dot(U,W),V)
+	C2 = -U[:,3]
+	R2 = np.dot(np.dot(U,W),V)
+	C3 = U[:,3]
+	R3 = Unp.dot(np.dot(U,W.T),V.T)
+	C4 = -U[:,3]
+	R4 = np.dot(np.dot(U,W.T),V.T)
 
 	if np.det(R1) == -1:
 		C1 = -1*C1

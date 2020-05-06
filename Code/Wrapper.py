@@ -12,31 +12,7 @@ Zack
 
 Needed Directories
 
-YourDirectoryID_hw1.zip
-│   README.md
-|   Your Code files
-|   ├── GetInliersRANSAC.py
-|   ├── EstimateFundamentalMatrix.py
-|   ├── EssentialMatrixFromFundamentalMatrix.py
-|   ├── ExtractCameraPose.py
-|   ├── LinearTriangulation.py
-|   ├── DisambiguateCameraPose.py
-|   ├── NonlinearTriangulation.py
-|   ├── PnPRANSAC.py
-|   ├── NonlinearPnP.py
-|   ├── BuildVisibilityMatrix.py
-|   ├── BundleAdjustment.py
-|   ├── Wrapper.py
-|   ├── Any subfolders you want along with files
-|   Wrapper.py
-|   Data
-|   ├── BundleAdjustmentOutputForAllImage
-|   ├── FeatureCorrespondenceOutputForAllImageSet
-|   ├── LinearTriangulationOutputForAllImageSet
-|   ├── NonLinearTriangulationOutputForAllImageSet
-|   ├── PnPOutputForAllImageSetShowingCameraPoses
-|   ├── Imgs/
-└── Report.pdf
+
 
 """
 
@@ -47,12 +23,13 @@ import sys
 # sys.path.remove('/opt/ros/kinetic/lib/python2.7/dist-packages')
 import cv2
 import os
-import utils.utils as ut
-from features import *
+# import utils.utils as ut
+# from features import *
 import copy
 import itertools
 import random
-from EssentialMatrixFromFundamentalMatrix import getEssentialMatirx
+from GetInliersRANSAC import *
+from EssentialMatrixFromFundamentalMatrix import *
 from ExtractCameraPose import *
 from LinearTriangulation import *
 def getk():
@@ -65,20 +42,29 @@ def main():
     # Add any Command Line arguments here
     Parser = argparse.ArgumentParser()
     # Parser.add_argument('--NumFeatures', default=100, help='Number of best features to extract from each image, Default:100')
-    Parser.add_argument('--ImgDirectory', default='../Data/Train/Set1/',
-                        help='Directory that contains images for panorama sticking')
+    Parser.add_argument('--ImgDirectory', default='../Data/',
+                        help='Directory that contains images for Sfm')
 
-    Parser.add_argument('--compute_corners', default=True, help='Directory that contains images for panorama sticking')
+    # Parser.add_argument('--compute_corners', default=True, help='Directory that contains images for panorama sticking')
     Args = Parser.parse_args()
     ImgDirectory = Args.ImgDirectory
-    compute_corners = Args.compute_corners
+    Fundamental_matrix = {}
+    num_files = len(os.listdir(ImgDirectory))
+    images = []
+    for i in range(1, 7):
+        img = cv2.imread(ImgDirectory + str(i) + '.jpg')
+        # cv2.imshow('img',img)
+        # cv2.waitKey(0)
+        images.append(img)
 
-
-
-    E = getEssentialMatrix(F,getk())
-    poses = ExtractCameraPose(E)
-    points3D= LinearTriangulation(poses,matches)
-    bestPose = DisambiguateCameraPose(poses,points3D)
+    iterations = 100
+    for i in range(1, 7):
+        print(type(img))
+        F,inliers = getInliersRANSAC(images[i], images[i+1], iterations)
+        E = getEssentialMatrix(F,getk())
+        poses = ExtractCameraPose(E)
+        points3D= LinearTriangulation(poses,inliers)
+        bestPose = DisambiguateCameraPose(poses,points3D)
 
 
 if __name__ == '__main__':
