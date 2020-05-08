@@ -37,8 +37,15 @@ def PnpRANSAC(img_pts,world_pts, K):
             if n < len(S):
                 n = len(S)
                 S_inliers = S
-                S_points_inliers = S_points
+                # S_points_inliers = S_points
     # print(min , max)
     # dd
+    x1 = []
+    X1 = []
 
+    for r in random.sample(range(len(S_inliers)), k=6):
+        x1.append(img_pts[S_inliers[r]])
+        X1.append(world_pts[S_inliers[r]])
+    R,C,P = LinearPnP(x1,X1, K)
+   
     return R,C
