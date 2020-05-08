@@ -20,7 +20,7 @@ Needed Directories
 import argparse
 import numpy as np
 import sys
-# sys.path.remove('/opt/ros/kinetic/lib/python2.7/dist-packages')
+sys.path.remove('/opt/ros/kinetic/lib/python2.7/dist-packages')
 import cv2
 import os
 # import utils.utils as ut
@@ -33,6 +33,9 @@ from EssentialMatrixFromFundamentalMatrix import *
 from ExtractCameraPose import *
 from LinearTriangulation import *
 from DisambiguateCameraPose import *
+from LinearPnP import *
+from PnPRANSAC import *
+
 def getk():
     K = np.array([[568.996140852, 0, 643.21055941],
     [0, 568.988362396, 477.982801038],
@@ -67,8 +70,12 @@ def main():
         E = getEssentialMatrix(F,getk())
         poses = ExtractCameraPose(E)
         points3D= LinearTriangulation(poses,inliers)
+        print(len(inliers), len(inliers[0]), len(points3D), len(points3D[0]))
         bestPose,points3D = DisambiguateCameraPose(poses,points3D)
         print(np.shape(points3D))
+        R,C = PnpRANSAC(inliers, points3D,getk())
+
+
 
 if __name__ == '__main__':
     main()
