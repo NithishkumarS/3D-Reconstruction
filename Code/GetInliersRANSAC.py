@@ -1,10 +1,10 @@
 import numpy as np
 import random
 import sys
-sys.path.remove('/opt/ros/kinetic/lib/python2.7/dist-packages')
+# sys.path.remove('/opt/ros/kinetic/lib/python2.7/dist-packages')
 import cv2
 
-print(cv2.__version__)
+# print(cv2.__version__)
 import fileinput, optparse
 # from matplotlib import pyplot as plt
 from EstimateFundamentalMatrix import *
@@ -87,36 +87,44 @@ def importMatches():
                         Matches[key] = [[p1,p2]]
     return Matches
     
-def getInliersRANSAC(img1, img2, M):
+def getInliersRANSAC(M):
 
     # matches = getMatches(img1,img2)
     Matches = importMatches()
+    Data = {}
     episilon = 10
     for key,matches  in Matches.items():
         c1 = np.hstack((np.array(matches)[:,0], np.ones((len(matches),1))) )
         c2 = np.hstack((np.array(matches)[:,1], np.ones((len(matches),1))) )
+
         S_inliers = []
+        S_points_inliers = []
         n = 0
         for i in range(M):
             rand_idx = random.sample(range(len(c2)), k=8)
             F = computeFundamentalMatrix(c1[rand_idx], c2[rand_idx])
             S = []
+            S_points = []
             for j in range(len(c1)):
                 x1, x2  = c1[j],c2[j]
                 if np.dot(np.dot(x2.T, F),x1) < episilon:
                     S.append(j)
+                    S_points.append([x1[:2],x1[:2]])
+
 
                 if n <len(S):
                     n = len(S)
                     S_inliers = S
-    X1 = []
-    X2 = []
-    for r in random.sample(range(len(S)), k=8):
-        X1.append(c1[S_inliers[r]])
-        X2.append(c2[S_inliers[r]])
-    F = computeFundamentalMatrix(X1, X2)
-    print(F)
-    return F, S_inliers
 
+                    S_points_inliers = S_points
+        X1 = []
+        X2 = []
+
+        for r in random.sample(range(len(S)), k=8):
+            X1.append(c1[S_inliers[r]])
+            X2.append(c2[S_inliers[r]])
+        F= computeFundamentalMatrix(X1, X2)
+        Data[key] = [F,S_points_inliers]
+    return Data
 # importMatches()
-b = getInliersRANSAC(cv2.imread('../Data/1.jpg'),cv2.imread('../Data/2.jpg') , 1)
+# b = getInliersRANSAC(cv2.imread('../Data/1.jpg'),cv2.imread('../Data/2.jpg') , 1)
