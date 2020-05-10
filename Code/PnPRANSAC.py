@@ -31,7 +31,7 @@ def PnpRANSAC(img_pts,world_pts, K):
             # if val > max:
             #     max = val
 
-            if reprojection_error(img_pts[j], world_pts[j], P) < 30000:
+            if reprojection_error(img_pts[j], world_pts[j], P) < 90000:
                 S.append(j)
 
             if n < len(S):
@@ -47,5 +47,5 @@ def PnpRANSAC(img_pts,world_pts, K):
         x1.append(img_pts[S_inliers[r]])
         X1.append(world_pts[S_inliers[r]])
     R,C,P = LinearPnP(x1,X1, K)
-   
+
     return R,C
