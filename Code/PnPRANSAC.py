@@ -17,7 +17,7 @@ def PnpRANSAC(img_pts,world_pts, K):
     max = 0
     for iter in range(100):
         rand_idx = random.sample(range(len(img_pts)), k=6)
-        print(np.array(img_pts)[rand_idx])
+        # print(np.array(img_pts)[rand_idx])
         R , C , P= LinearPnP(np.array(img_pts)[rand_idx],world_pts[rand_idx], K)
         # print(R,C)
 
