@@ -6,12 +6,26 @@ def computeFundamentalMatrix(_X1, _X2):
     # print(_X1)
     A = np.empty((0,9))
     for x1,x2 in zip(_X1, _X2):
-        ele = np.array([[x1[0]*x2[0], x1[0]*x2[1], x1[0], x1[1]*x2[0], x1[1]*x2[1], x1[1], x2[0], x2[1], 1]])
+        u1 = x1[0]
+        u2 = x2[0]
+        v1 = x1[1]
+        v2 = x2[1]
+        ele = np.array([u2*u1,u2*v1,u2,v2*u1,v2*v1,v2,u1,v1,1])
+
+        # ele = np.array([[x1[0]*x2[0], x1[0]*x2[1], x1[0], x1[1]*x2[0], x1[1]*x2[1], x1[1], x2[0], x2[1], 1]])
         A = np.vstack((A,ele))
     u, s, vh = np.linalg.svd(A)
     F = vh[-1, :] / vh[-1, -1]
     F = F.reshape((3,3))
-    # print('b:::', F)
+    U,S,Vh = np.linalg.svd(F)
+    singulars = [[S[0],0,0],[0,S[1],0],[0,0,0]]
+    F = np.matmul(np.matmul(U,singulars),Vh)
+    # F_test,_ = cv2.findFundamentalMat(_X1,_X2,cv2.FM_LMEDS)
+    # print(np.linalg.matrix_rank(F))
+    # print(np.linalg.matrix_rank(F_test))
+    # print(F)
+    # print(F_test)
+    # print(zach)
     return F
 
 def test_func(_X1, _X2, c1,c2):

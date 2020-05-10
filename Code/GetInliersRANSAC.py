@@ -111,7 +111,7 @@ def getInliersRANSAC(M,images):
     # matches = getMatches(img1,img2)
     Matches = importMatches()
     Data = {}
-    episilon = .2
+    episilon = .03
     for key,matches  in Matches.items():
 
         image1 = images[int(key[0])-1]
@@ -140,6 +140,7 @@ def getInliersRANSAC(M,images):
                 x1, x2  = c1[j],c2[j]
                 
                 if abs(np.dot(np.dot(x2.T, F),x1)) < episilon:
+                    # print(abs(np.dot(np.dot(x2.T, F),x1)))
                     S.append(j)
                     S_points.append([x1[:2],x2[:2]])
                     # cv2.waitKey(0)
@@ -159,8 +160,8 @@ def getInliersRANSAC(M,images):
             X2.append(c2[S_inliers[r]])
         F= computeFundamentalMatrix(X1, X2)
         # print(type(X1))
-        test_func(X1, X2, c1, c2)
-        jd
+        # test_func(X1, X2, c1, c2)
+        # jd
         drawn_inliers = drawMatches(S_points_inliers,image1,image2,'matches')
         # cv2.imshow('inliers',cv2.resize(drawn_inliers,(0,0), fx=0.5,fy=0.5))
         # print(len(matches),len(S_points_inliers))

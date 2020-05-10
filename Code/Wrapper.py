@@ -79,7 +79,7 @@ def main():
     iterations = 1000
 
 
-    data = getInliersRANSAC(iterations)
+    data = getInliersRANSAC(iterations,images)
     for key,info in data.items():
         F = info[0]
         inliers = info[1]
@@ -88,13 +88,10 @@ def main():
         E = getEssentialMatrix(F,getk())
         poses = ExtractCameraPose(E)
 
-        points3D= LinearTriangulation(poses,inliers)
-        visualize(points3D)
+        # points3D= LinearTriangulation(poses,inliers,getk())
+        
         # print(len(inliers), len(inliers[0]), len(points3D), len(points3D[0]))
-        bestPose,points3D = DisambiguateCameraPose(poses,points3D)
-        print(np.shape(points3D))
-        R,C = PnpRANSAC(inliers, points3D,getk())
-        print('Main: ', C, R)
+
 
         plt.plot(0,0,'rx')
         plt.plot(poses[0][0][0],poses[0][0][2],'bx')
@@ -106,21 +103,23 @@ def main():
 
 
         points3D= LinearTriangulation(poses,inliers,getk())
-        # plt.plot(points3D[:,0,0],points3D[:,0,2],'bo')
-        # plt.plot(points3D[:,1,0],points3D[:,1,2],'go')
-        # plt.plot(points3D[:,2,0],points3D[:,2,2],'co')
-        # plt.plot(points3D[:,3,0],points3D[:,3,2],'ko')
+
+        # visualize(points3D)
+
+        plt.plot(points3D[:,0,0],points3D[:,0,2],'bo')
+        plt.plot(points3D[:,1,0],points3D[:,1,2],'go')
+        plt.plot(points3D[:,2,0],points3D[:,2,2],'co')
+        plt.plot(points3D[:,3,0],points3D[:,3,2],'ko')
         
         # print(len(inliers), len(inliers[0]), len(points3D), len(points3D[0]))
         bestPose,points3D = DisambiguateCameraPose(poses,points3D)
-        plt.plot(points3D[:,0],points3D[:,2],'ro')
+        # plt.plot(points3D[:,0],points3D[:,2],'ro')
         # print(np.shape(points3D))
         # plt.scatter(points3D)
         # print(np.shape(points3D))
         # R,C = PnpRANSAC(inliers, points3D,getk())
         cv2.waitKey(1)
         plt.show()
-
 
 if __name__ == '__main__':
     main()
