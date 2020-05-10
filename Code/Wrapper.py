@@ -28,6 +28,7 @@ import os
 import copy
 import itertools
 import random
+from matplotlib import pyplot as plt
 from GetInliersRANSAC import *
 from EssentialMatrixFromFundamentalMatrix import *
 from ExtractCameraPose import *
@@ -41,6 +42,16 @@ def getk():
     [0, 568.988362396, 477.982801038],
     [0, 0, 1]] )
     return K
+
+def visualize(world_pts):
+    plt.figure()
+
+    for X in world_pts:
+        x = X[0]
+        y = X[1]
+        plt.plot(x, y, 'b+')
+    plt.show()
+
 
 def main():
     # Add any Command Line arguments here
@@ -63,6 +74,7 @@ def main():
 
     iterations = 100
 
+
     data = getInliersRANSAC(iterations)
     for key,info in data.items():
         F = info[0]
@@ -70,10 +82,12 @@ def main():
         E = getEssentialMatrix(F,getk())
         poses = ExtractCameraPose(E)
         points3D= LinearTriangulation(poses,inliers)
-        print(len(inliers), len(inliers[0]), len(points3D), len(points3D[0]))
+        visualize(points3D)
+        # print(len(inliers), len(inliers[0]), len(points3D), len(points3D[0]))
         bestPose,points3D = DisambiguateCameraPose(poses,points3D)
         print(np.shape(points3D))
         R,C = PnpRANSAC(inliers, points3D,getk())
+        print('Main: ', C, R)
 
 
 
