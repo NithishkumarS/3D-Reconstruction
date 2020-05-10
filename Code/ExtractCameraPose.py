@@ -10,9 +10,9 @@ def ExtractCameraPose(E):
 	C2 = -U[:,-1,np.newaxis]
 	R2 = np.dot(np.dot(U,W),V)
 	C3 = U[:,-1,np.newaxis]
-	R3 = np.dot(np.dot(U,W.T),V.T)
+	R3 = np.dot(np.dot(U,W.T),V)
 	C4 = -U[:,-1,np.newaxis]
-	R4 = np.dot(np.dot(U,W.T),V.T)
+	R4 = np.dot(np.dot(U,W.T),V)
 
 	if np.linalg.det(R1) == -1:
 		C1 = -1*C1

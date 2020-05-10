@@ -87,44 +87,83 @@ def importMatches():
                         Matches[key] = [[p1,p2]]
     return Matches
     
-def getInliersRANSAC(M):
+def drawMatches(matches,img1,img2, name):
+    width = np.shape(img1)[1]
+    combed_img = np.hstack((img1,img2))
+    matches = np.array(matches)
+    matches[:,1,0] = matches[:,1,0]+width
+    for match in matches:
+        y = int(match[0,1])
+        x = int(match[0,0])
+        yp = int(match[1,1])
+        xp = int(match[1,0])
+        combed_img = cv2.line(combed_img,(x,y),(xp,yp),[255,0,0])
+        combed_img = cv2.line(combed_img,(x,y),(xp,yp),[0,255,0])
+        cv2.circle(combed_img, (x, y), 3, 255, -1)
+        cv2.circle(combed_img, (xp, yp), 3, 255, -1)
+    # cv2.imshow(name,combed_img)
+    # cv2.waitKey(0)
+    return combed_img
+
+
+def getInliersRANSAC(M,images):
 
     # matches = getMatches(img1,img2)
     Matches = importMatches()
     Data = {}
-    episilon = 10
+    episilon = .3
     for key,matches  in Matches.items():
+
+        image1 = images[int(key[0])-1]
+        image2 = images[int(key[1])-1]
+        # cv2.imshow('image 1',image1)
+        # cv2.imshow('image 2',image2)
+        # print(np.shape(matches))
+        # print(matches[0])
+        drawnMatches = drawMatches(matches,image1,image2,'matches')
+        # cv2.imshow('matches',cv2.resize(drawnMatches,(0,0),fx=0.5, fy=0.5))
+        # cv2.waitKey(0)
+
         c1 = np.hstack((np.array(matches)[:,0], np.ones((len(matches),1))) )
         c2 = np.hstack((np.array(matches)[:,1], np.ones((len(matches),1))) )
-
         S_inliers = []
         S_points_inliers = []
         n = 0
         for i in range(M):
-            rand_idx = random.sample(range(len(c2)), k=8)
+            l = range(len(c2))
+            # print(len(l))
+            rand_idx = random.sample(l, k=8)
             F = computeFundamentalMatrix(c1[rand_idx], c2[rand_idx])
             S = []
             S_points = []
             for j in range(len(c1)):
                 x1, x2  = c1[j],c2[j]
-                if np.dot(np.dot(x2.T, F),x1) < episilon:
+                
+                if abs(np.dot(np.dot(x2.T, F),x1)) < episilon:
                     S.append(j)
-                    S_points.append([x1[:2],x1[:2]])
-
+                    S_points.append([x1[:2],x2[:2]])
+                    # cv2.waitKey(0)
 
                 if n <len(S):
                     n = len(S)
                     S_inliers = S
-
                     S_points_inliers = S_points
+            if float(n)/len(matches) >0.8:
+                break
+
         X1 = []
         X2 = []
-
-        for r in random.sample(range(len(S)), k=8):
+        l = range(len(S))
+        for r in random.sample(l, k=8):
             X1.append(c1[S_inliers[r]])
             X2.append(c2[S_inliers[r]])
         F= computeFundamentalMatrix(X1, X2)
-        Data[key] = [F,S_points_inliers]
+        drawn_inliers = drawMatches(S_points_inliers,image1,image2,'matches')
+        # cv2.imshow('inliers',cv2.resize(drawn_inliers,(0,0), fx=0.5,fy=0.5))
+        # print(len(matches),len(S_points_inliers))
+        # cv2.waitKey(0)
+
+        Data[key] = [F,S_points_inliers,drawn_inliers]
     return Data
 # importMatches()
 # b = getInliersRANSAC(cv2.imread('../Data/1.jpg'),cv2.imread('../Data/2.jpg') , 1)
