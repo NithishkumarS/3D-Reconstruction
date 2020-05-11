@@ -161,7 +161,7 @@ def getInliersRANSAC(M,images):
         F= computeFundamentalMatrix(X1, X2)
         # print(type(X1))
         # test_func(X1, X2, c1, c2)
-        # jd
+
         drawn_inliers = drawMatches(S_points_inliers,image1,image2,'matches')
         # cv2.imshow('inliers',cv2.resize(drawn_inliers,(0,0), fx=0.5,fy=0.5))
         # print(len(matches),len(S_points_inliers))
@@ -169,5 +169,5 @@ def getInliersRANSAC(M,images):
 
         Data[key] = [F,S_points_inliers,drawn_inliers]
     return Data
-# importMatches()
+
 # b = getInliersRANSAC(cv2.imread('../Data/1.jpg'),cv2.imread('../Data/2.jpg') , 1)

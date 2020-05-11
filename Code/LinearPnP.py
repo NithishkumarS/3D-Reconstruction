@@ -13,7 +13,7 @@ def LinearPnP(img_pts,world_pts, K):
                       [-x[1]*X[0],-x[1]*X[1],-x[1]*X[2], -x[1]*X[3], x[0]*X[0],x[0]*X[1],x[0]*X[2], x[0]*X[3], 0,     0,     0,    0,  ] ])
         A = np.vstack((A,row))
         # print(count)
-        count +=1
+        # count +=1
 
     # print(A)
     # print(A.shape)
