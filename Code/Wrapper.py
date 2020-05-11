@@ -117,6 +117,8 @@ def main():
         # print(np.shape(points3D))
         # plt.scatter(points3D)
         # print(np.shape(points3D))
+        points3D = NonLinearTraingualtion(bestPose[0], bestPose[1], getk(), inliers[0], inliers[1], Points3D)
+
         # R,C = PnpRANSAC(inliers, points3D,getk())
         cv2.waitKey(1)
         plt.show()
