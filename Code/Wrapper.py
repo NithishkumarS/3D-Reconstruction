@@ -48,7 +48,7 @@ def getk():
     [0, 0, 1]] )
     return K
 
-def visualize(world_pts, name):
+def visualize(world_pts, name, file= 'save.png'):
     plt.figure()
     plt.title(name)
 
@@ -56,6 +56,7 @@ def visualize(world_pts, name):
         x = X[0]
         y = X[2]
         plt.plot(x, y, 'b+')
+    plt.savefig(file)
 
     plt.show()
 
@@ -113,10 +114,10 @@ def main():
         # print(np.shape(points3D))
         # plt.scatter(points3D)
         # print(np.shape(points3D))
-        visualize(points3D, 'linear')
+        visualize(points3D, 'linear', file= "output/"+str(key)+".png")
         print('Non linear triangulation')
         points = NonLinearTraingualtion(bestPose[0], bestPose[1], getk(), inliers[0], inliers[1], points3D)
-        visualize(points, 'non linear')
+        visualize(points, 'non linear',file= "output/"+str(key)+".png")
         print(np.mean(abs(points3D - points)))
         print('done')
 
