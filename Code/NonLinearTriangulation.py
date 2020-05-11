@@ -7,8 +7,10 @@ def reprojection_error(x, X, P):
     # print(error)
     return  error
 
-def loss_func(X0, P1, P2, x1,x2):
+def loss_func(X0, P, x1,x2):
     diff = []
+    P1 = P[0]
+    P2 = P[1]
 
     X0 = X0.reshape((-1,3))
 
@@ -18,9 +20,15 @@ def loss_func(X0, P1, P2, x1,x2):
         u2 = _x2[0]
         v2 = _x2[1]
 
-        diff.append(reprojection_error((u1,v1), _X, P1))
-        diff.append(reprojection_error((u2,v2), _X, P2))
+        X = np.concatenate([_X, np.array([1])])
+        # error = (x[0] - np.dot(P[0], X) / np.dot(P[2], X)) ** 2 + (x[1] - np.dot(P[1], X) / np.dot(P[2], X)) ** 2
+        # print(error)
+        # diff.append(  (u1 - np.dot(P1[0], X) / np.dot(P1[2], X)) ** 2 + (v1 - np.dot(P1[1], X) / np.dot(P1[2], X)) ** 2)
+
+        diff.append(reprojection_error((u1,v1), _X, P1) +reprojection_error((u2,v2), _X, P2))
+
     # X0 = X0.reshape((-1, 1))
+    # print(diff)
 
     return np.array(diff).flatten()
 
@@ -37,8 +45,9 @@ def NonLinearTraingualtion(R, C, k, x1, x2, Points3D):
     # import pdb
     # pdb.set_trace()
     # params = [A[0, 0], A[1, 1], A[0, 2], A[1, 2], A[0, 1], k1, k2]
-    refined_params = optimize.least_squares(loss_func, x0=X0, method="lm", args=[P1, P2, x1, x2])
+    refined_params = optimize.least_squares(loss_func, x0=X0, args=[[P1, P2], x1, x2])
     # print(refined_params)
-    Points3D = refined_params.x
+    points3D = refined_params.x
+    points3D = points3D.reshape((-1,3))
 
     return points3D
