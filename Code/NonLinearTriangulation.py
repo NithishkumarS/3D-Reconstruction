@@ -32,7 +32,7 @@ def NonLinearTraingualtion(R, C, k, x1, x2, Points3D):
     X0 = Points3D
     # print(X0)
     X0 = X0.reshape((-1))
-    print(X0.shape)
+    # print(X0.shape)
 
     # import pdb
     # pdb.set_trace()
