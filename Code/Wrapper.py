@@ -48,13 +48,15 @@ def getk():
     [0, 0, 1]] )
     return K
 
-def visualize(world_pts):
+def visualize(world_pts, name):
     plt.figure()
+    plt.title(name)
 
     for X in world_pts:
         x = X[0]
         y = X[2]
         plt.plot(x, y, 'b+')
+
     plt.show()
 
 
@@ -88,15 +90,11 @@ def main():
         E = getEssentialMatrix(F, getk())
         poses = ExtractCameraPose(E)
 
-        # points3D= LinearTriangulation(poses,inliers,getk())
-
-        # print(len(inliers), len(inliers[0]), len(points3D), len(points3D[0]))
-
-        plt.plot(0, 0, 'rx')
-        plt.plot(poses[0][0][0], poses[0][0][2], 'bx')
-        plt.plot(poses[1][0][0], poses[1][0][2], 'gx')
-        plt.plot(poses[2][0][0], poses[2][0][2], 'cx')
-        plt.plot(poses[3][0][0], poses[3][0][2], 'kx')
+        # plt.plot(0, 0, 'rx')
+        # plt.plot(poses[0][0][0], poses[0][0][2], 'bx')
+        # plt.plot(poses[1][0][0], poses[1][0][2], 'gx')
+        # plt.plot(poses[2][0][0], poses[2][0][2], 'cx')
+        # plt.plot(poses[3][0][0], poses[3][0][2], 'kx')
         # plt.yaxis.label('Z')
         # plt.xaxis.label('X')
 
@@ -104,10 +102,10 @@ def main():
 
         # visualize(points3D)
 
-        plt.plot(points3D[:, 0, 0], points3D[:, 0, 2], 'bo')
-        plt.plot(points3D[:, 1, 0], points3D[:, 1, 2], 'go')
-        plt.plot(points3D[:, 2, 0], points3D[:, 2, 2], 'co')
-        plt.plot(points3D[:, 3, 0], points3D[:, 3, 2], 'ko')
+        # plt.plot(points3D[:, 0, 0], points3D[:, 0, 2], 'bo')
+        # plt.plot(points3D[:, 1, 0], points3D[:, 1, 2], 'go')
+        # plt.plot(points3D[:, 2, 0], points3D[:, 2, 2], 'co')
+        # plt.plot(points3D[:, 3, 0], points3D[:, 3, 2], 'ko')
 
         # print(len(inliers), len(inliers[0]), len(points3D), len(points3D[0]))
         bestPose, points3D = DisambiguateCameraPose(poses, points3D)
@@ -115,12 +113,18 @@ def main():
         # print(np.shape(points3D))
         # plt.scatter(points3D)
         # print(np.shape(points3D))
-        points3D = NonLinearTraingualtion(bestPose[0], bestPose[1], getk(), inliers[0], inliers[1], points3D)
+        visualize(points3D, 'linear')
+        print('Non linear triangulation')
+        points = NonLinearTraingualtion(bestPose[0], bestPose[1], getk(), inliers[0], inliers[1], points3D)
+        visualize(points, 'non linear')
+        print(np.mean(abs(points3D - points)))
+        print('done')
+
 
         # R,C = PnpRANSAC(inliers, points3D,getk())
         cv2.waitKey(1)
         plt.show()
-        
+
 if __name__ == '__main__':
     main()
 
