@@ -58,7 +58,7 @@ def visualize(world_pts, name, file= 'save.png'):
         plt.plot(x, y, 'b+')
     plt.savefig(file)
 
-    plt.show()
+    # plt.show()
 
 
 def main():
@@ -117,14 +117,14 @@ def main():
         visualize(points3D, 'linear', file= "output/"+str(key)+".png")
         print('Non linear triangulation')
         points = NonLinearTraingualtion(bestPose[0], bestPose[1], getk(), inliers[0], inliers[1], points3D)
-        visualize(points, 'non linear',file= "output/"+str(key)+".png")
+        visualize(points, 'non linear',file= "output/"+"NT"+str(key)+".png")
         print(np.mean(abs(points3D - points)))
         print('done')
 
 
         # R,C = PnpRANSAC(inliers, points3D,getk())
         cv2.waitKey(1)
-        plt.show()
+        # plt.show()
 
 if __name__ == '__main__':
     main()
