@@ -29,6 +29,9 @@ import copy
 import itertools
 import random
 from matplotlib import pyplot as plt
+from mpl_toolkits.mplot3d import Axes3D
+from scipy.spatial.transform import Rotation as R
+
 from GetInliersRANSAC import *
 from EssentialMatrixFromFundamentalMatrix import *
 from ExtractCameraPose import *
@@ -58,7 +61,22 @@ def visualize(world_pts, name, file= 'save.png'):
         y = X[2]
         plt.plot(x, y, 'b+')
     plt.savefig(file)
+    # plt.show()
+def rotmatrix_to_angles(M):
+    r = R.from_matrix(M)
+    print(r.as_euler('zyx', degrees=True))
 
+def viz_3D(tripoints3d):
+    # print(tripoints3d[0])
+    # dgf
+    fig = plt.figure()
+    fig.suptitle('3D reconstructed', fontsize=16)
+    ax = fig.gca(projection='3d')
+    ax.plot(tripoints3d[:,0], tripoints3d[:,1], tripoints3d[:,2], 'b.')
+    ax.set_xlabel('x axis')
+    ax.set_ylabel('y axis')
+    ax.set_zlabel('z axis')
+    ax.view_init(elev=45, azim=40)
     plt.show()
 
 def plotCamera(R,C,color):
@@ -67,16 +85,12 @@ def plotCamera(R,C,color):
     plt.plot(pnts[:,0],pnts[:,2],'k')
     plt.plot(pnts[0,0],pnts[0,2],'ko')
     pnts = np.dot(pnts,R)
-    print('pnts',pnts)
-    print(np.shape(C))
     pnts[:,0] = pnts[:,0]+C[0]
     pnts[:,2] = pnts[:,2]+C[2]  
-    print('trans',pnts)
     plt.plot(pnts[:,0],pnts[:,2],color)
     plt.plot(pnts[0,0],pnts[0,2],'ko')
 
     return plt
-
 
 def main():
 
@@ -109,6 +123,8 @@ def main():
     data = pickle.load(pickleFile)
     pickleFile.close()
 
+    print('got inliers ')
+
     for key, info in data.items():
     	info = data["12"]
     	key = "12"
@@ -131,7 +147,6 @@ def main():
         total_points = []
         colors = 'bgcr'
         count = []
-        print(np.shape(inliers))
         for i in range(4):
             points3D = LinearTriangulation(poses[i], inliers, getk())
             plotCamera(poses[i][1],poses[i][0],colors[i])
@@ -142,50 +157,36 @@ def main():
         points3D = total_points[np.argmax(count)]
         # visualize(points3D)
 
-        # plt.plot(points3D[:, 0, 0], points3D[:, 0, 2], 'bo')
-        # plt.plot(points3D[:, 1, 0], points3D[:, 1, 2], 'go')
-        # plt.plot(points3D[:, 2, 0], points3D[:, 2, 2], 'co')
-        # plt.plot(points3D[:, 3, 0], points3D[:, 3, 2], 'ro')
-
-
-        # print(len(inliers), len(inliers[0]), len(points3D), len(points3D[0]))
-        # bestPose, points3D = DisambiguateCameraPose(poses, points3D)
-        
         plt.figure()
         plotCamera(bestPose[1],bestPose[0],'r')
         plt.plot(points3D[:,0],points3D[:,2],'ro')
         # cv2.waitKey(0)
        	# plt.show()
 
-        # print(np.shape(points3D))
-        # plt.scatter(points3D)
-        # print(np.shape(points3D))
         # visualize(points3D, 'linear', file= "output/"+str(key)+".png")
         # print('Non linear triangulation')
-        # points = NonLinearTraingualtion(bestPose[1], bestPose[0], getk(), inliers[:,0], inliers[:,1], points3D)
-        # handle =  open('tri.pkl','wb')
-        # pickle.dump(points,handle)
-        # handle.close()
+        points = NonLinearTraingualtion(bestPose[1], bestPose[0], getk(), inliers[:,0], inliers[:,1], points3D)
+        handle =  open('tri.pkl','wb')
+        pickle.dump(points,handle)
+        handle.close()
     
         pickleFile = open('tri.pkl','rb')
         points = pickle.load(pickleFile)
         points = points[:,:3]
         pickleFile.close()
 
-
         R,C = PnpRANSAC(inliers, points,getk())
-        print('____')
-        print(bestPose)
-        print(R,C)
         plotCamera(R,C,'c')
         plt.plot(points[:,0],points[:,2],'co')
         plt.show()
         # print(np.mean(abs(points3D - points)))
         print('done')
 
+        rotmatrix_to_angles(R)
+        # print(key,R,C)
 
         cv2.waitKey(1)
-        plt.show()
+        # plt.show()
 
 if __name__ == '__main__':
     main()
