@@ -15,10 +15,10 @@ def PnpRANSAC(img_pts,world_pts, K):
     S_inliers = []
     min = np.inf
     max = 0
-    for iter in range(100):
+    for iter in range(1000):
         rand_idx = random.sample(range(len(img_pts)), k=6)
         # print(np.array(img_pts)[rand_idx])
-        R , C , P= LinearPnP(np.array(img_pts)[rand_idx],world_pts[rand_idx], K)
+        R , C , P= LinearPnP(np.array(img_pts)[rand_idx],np.array(world_pts)[rand_idx], K)
         # print(R,C)
 
         S = []
@@ -31,7 +31,7 @@ def PnpRANSAC(img_pts,world_pts, K):
             # if val > max:
             #     max = val
 
-            if reprojection_error(img_pts[j], world_pts[j], P) < 90000:
+            if reprojection_error(img_pts[j], world_pts[j], P) < 900000:
                 S.append(j)
 
             if n < len(S):
@@ -46,6 +46,7 @@ def PnpRANSAC(img_pts,world_pts, K):
     for r in random.sample(range(len(S_inliers)), k=6):
         x1.append(img_pts[S_inliers[r]])
         X1.append(world_pts[S_inliers[r]])
+    print(100.0*float(len(S_inliers))/len(world_pts),'%')
     R,C,P = LinearPnP(x1,X1, K)
 
     return R,C

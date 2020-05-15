@@ -20,7 +20,7 @@ Needed Directories
 import argparse
 import numpy as np
 import sys
-sys.path.remove('/opt/ros/kinetic/lib/python2.7/dist-packages')
+# sys.path.remove('/opt/ros/kinetic/lib/python2.7/dist-packages')
 import cv2
 import os
 # import utils.utils as ut
@@ -38,6 +38,7 @@ from NonLinearTriangulation import *
 from LinearPnP import *
 from PnPRANSAC import *
 import matplotlib.pyplot as plt
+import pickle
 
 def graphPoints(points):
     print(np.shape(points))
@@ -60,8 +61,25 @@ def visualize(world_pts, name, file= 'save.png'):
 
     plt.show()
 
+def plotCamera(R,C,color):
+
+    pnts = np.array([[0,0,0],[-1,0,1],[1,0,1],[0,0,0]])
+    plt.plot(pnts[:,0],pnts[:,2],'k')
+    plt.plot(pnts[0,0],pnts[0,2],'ko')
+    pnts = np.dot(pnts,R)
+    print('pnts',pnts)
+    print(np.shape(C))
+    pnts[:,0] = pnts[:,0]+C[0]
+    pnts[:,2] = pnts[:,2]+C[2]  
+    print('trans',pnts)
+    plt.plot(pnts[:,0],pnts[:,2],color)
+    plt.plot(pnts[0,0],pnts[0,2],'ko')
+
+    return plt
+
 
 def main():
+
     # Add any Command Line arguments here
     Parser = argparse.ArgumentParser()
     # Parser.add_argument('--NumFeatures', default=100, help='Number of best features to extract from each image, Default:100')
@@ -80,49 +98,92 @@ def main():
         # cv2.waitKey(0)
         images.append(img)
 
-    iterations = 1000
+    iterations = 5000
 
-    data = getInliersRANSAC(iterations, images)
+    # data = getInliersRANSAC(iterations, images)
+    # handle =  open('data.pkl','wb')
+    # pickle.dump(data,handle)
+    # handle.close()
+    
+    pickleFile = open('data.pkl','rb')
+    data = pickle.load(pickleFile)
+    pickleFile.close()
+
     for key, info in data.items():
+    	info = data["12"]
+    	key = "12"
         F = info[0]
-        inliers = info[1]
+        inliers = np.array(info[1])
         matches = info[2]
         cv2.imshow('matches', cv2.resize(matches, (0, 0), fx=0.5, fy=0.5))
         E = getEssentialMatrix(F, getk())
-        poses = ExtractCameraPose(E)
+        poses = ExtractCameraPose(E,getk())
 
         # plt.plot(0, 0, 'rx')
-        # plt.plot(poses[0][0][0], poses[0][0][2], 'bx')
-        # plt.plot(poses[1][0][0], poses[1][0][2], 'gx')
-        # plt.plot(poses[2][0][0], poses[2][0][2], 'cx')
-        # plt.plot(poses[3][0][0], poses[3][0][2], 'kx')
-        # plt.yaxis.label('Z')
-        # plt.xaxis.label('X')
+        # plotCamera(poses[0][1],poses[0][0],'b')
+        # plotCamera(poses[1][1],poses[1][0],'g')
+        # plotCamera(poses[2][1],poses[2][0],'c')
+        # plotCamera(poses[3][1],poses[3][0],'r')
 
-        points3D = LinearTriangulation(poses, inliers, getk())
 
+        plt.ylabel('Z')
+        plt.xlabel('X')
+        total_points = []
+        colors = 'bgcr'
+        count = []
+        print(np.shape(inliers))
+        for i in range(4):
+            points3D = LinearTriangulation(poses[i], inliers, getk())
+            plotCamera(poses[i][1],poses[i][0],colors[i])
+            plt.plot(points3D[:,0],points3D[:,2],colors[i]+'o')
+            total_points.append(points3D)
+            count.append(DisambiguateCameraPose(poses[i],points3D))
+        bestPose = poses[np.argmax(count)]
+        points3D = total_points[np.argmax(count)]
         # visualize(points3D)
 
         # plt.plot(points3D[:, 0, 0], points3D[:, 0, 2], 'bo')
         # plt.plot(points3D[:, 1, 0], points3D[:, 1, 2], 'go')
         # plt.plot(points3D[:, 2, 0], points3D[:, 2, 2], 'co')
-        # plt.plot(points3D[:, 3, 0], points3D[:, 3, 2], 'ko')
+        # plt.plot(points3D[:, 3, 0], points3D[:, 3, 2], 'ro')
+
 
         # print(len(inliers), len(inliers[0]), len(points3D), len(points3D[0]))
-        bestPose, points3D = DisambiguateCameraPose(poses, points3D)
-        # plt.plot(points3D[:,0],points3D[:,2],'ro')
+        # bestPose, points3D = DisambiguateCameraPose(poses, points3D)
+        
+        plt.figure()
+        plotCamera(bestPose[1],bestPose[0],'r')
+        plt.plot(points3D[:,0],points3D[:,2],'ro')
+        # cv2.waitKey(0)
+       	# plt.show()
+
         # print(np.shape(points3D))
         # plt.scatter(points3D)
         # print(np.shape(points3D))
-        visualize(points3D, 'linear', file= "output/"+str(key)+".png")
-        print('Non linear triangulation')
-        points = NonLinearTraingualtion(bestPose[0], bestPose[1], getk(), inliers[0], inliers[1], points3D)
-        visualize(points, 'non linear',file= "output/"+str(key)+".png")
-        print(np.mean(abs(points3D - points)))
+        # visualize(points3D, 'linear', file= "output/"+str(key)+".png")
+        # print('Non linear triangulation')
+        # points = NonLinearTraingualtion(bestPose[1], bestPose[0], getk(), inliers[:,0], inliers[:,1], points3D)
+        # handle =  open('tri.pkl','wb')
+        # pickle.dump(points,handle)
+        # handle.close()
+    
+        pickleFile = open('tri.pkl','rb')
+        points = pickle.load(pickleFile)
+        points = points[:,:3]
+        pickleFile.close()
+
+
+        R,C = PnpRANSAC(inliers, points,getk())
+        print('____')
+        print(bestPose)
+        print(R,C)
+        plotCamera(R,C,'c')
+        plt.plot(points[:,0],points[:,2],'co')
+        plt.show()
+        # print(np.mean(abs(points3D - points)))
         print('done')
 
 
-        # R,C = PnpRANSAC(inliers, points3D,getk())
         cv2.waitKey(1)
         plt.show()
 

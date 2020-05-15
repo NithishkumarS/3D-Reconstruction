@@ -1,10 +1,17 @@
 import numpy as np
 from scipy import optimize
 
-def reprojection_error(x, X, P):
+def reprojection_error(x2d, X, poses):
     X = np.concatenate([X,np.array([1])])
-    error = (x[0]- np.dot(P[0],X) / np.dot(P[2], X))**2 + (x[1]- np.dot(P[1],X) / np.dot(P[2], X))**2
+    # print(P[0])
+    # print(X)
+    error = 0
+    for i in range(2):
+        x = x2d[i]
+        P = poses[i]
+    error += (x[0]- np.dot(P[0],X) / np.dot(P[2], X))**2 + (x[1]- np.dot(P[1],X) / np.dot(P[2], X))**2
     # print(error)
+    
     return  error
 
 def loss_func(X0, P, x1,x2):
@@ -25,19 +32,21 @@ def loss_func(X0, P, x1,x2):
         # print(error)
         # diff.append(  (u1 - np.dot(P1[0], X) / np.dot(P1[2], X)) ** 2 + (v1 - np.dot(P1[1], X) / np.dot(P1[2], X)) ** 2)
 
-        diff.append(reprojection_error((u1,v1), _X, P1) +reprojection_error((u2,v2), _X, P2))
+        diff.append(reprojection_error([_x1,_x2], _X, P))
 
     # X0 = X0.reshape((-1, 1))
     # print(diff)
-
+    # print(np.shape(np.array(diff).flatten()))
     return np.array(diff).flatten()
 
 def NonLinearTraingualtion(R, C, k, x1, x2, Points3D):
 
     P1 = np.dot(k, np.hstack((np.eye(3), np.zeros((3, 1)))))
-    P2 = np.dot(k, np.hstack((R, -C)))
-    # print(Points3D)
-    X0 = Points3D
+    P2 = np.dot(k, np.dot(R,np.hstack((np.eye(3), -C))))
+    # P2 = np.dot(k,np.hstack(R,-C))
+    # print(Points3D[0])
+    # print(np.shape(Points3D))
+    X0 = Points3D[:,:3]
     # print(X0)
     X0 = X0.reshape((-1))
     # print(X0.shape)
