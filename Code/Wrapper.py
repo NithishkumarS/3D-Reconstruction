@@ -29,6 +29,8 @@ import copy
 import itertools
 import random
 from matplotlib import pyplot as plt
+from mpl_toolkits.mplot3d import Axes3D
+
 from GetInliersRANSAC import *
 from EssentialMatrixFromFundamentalMatrix import *
 from ExtractCameraPose import *
@@ -57,9 +59,21 @@ def visualize(world_pts, name, file= 'save.png'):
         y = X[2]
         plt.plot(x, y, 'b+')
     plt.savefig(file)
-
     # plt.show()
 
+
+def viz_3D(tripoints3d):
+    print(tripoints3d[0])
+    # dgf
+    fig = plt.figure()
+    fig.suptitle('3D reconstructed', fontsize=16)
+    ax = fig.gca(projection='3d')
+    ax.plot(tripoints3d[:,0], tripoints3d[:,1], tripoints3d[:,2], 'b.')
+    ax.set_xlabel('x axis')
+    ax.set_ylabel('y axis')
+    ax.set_zlabel('z axis')
+    ax.view_init(elev=45, azim=40)
+    plt.show()
 
 def main():
     # Add any Command Line arguments here
@@ -83,6 +97,8 @@ def main():
     iterations = 1000
 
     data = getInliersRANSAC(iterations, images)
+    print('got inliers ')
+
     for key, info in data.items():
         F = info[0]
         inliers = info[1]
@@ -90,36 +106,21 @@ def main():
         cv2.imshow('matches', cv2.resize(matches, (0, 0), fx=0.5, fy=0.5))
         E = getEssentialMatrix(F, getk())
         poses = ExtractCameraPose(E)
-
-        # plt.plot(0, 0, 'rx')
-        # plt.plot(poses[0][0][0], poses[0][0][2], 'bx')
-        # plt.plot(poses[1][0][0], poses[1][0][2], 'gx')
-        # plt.plot(poses[2][0][0], poses[2][0][2], 'cx')
-        # plt.plot(poses[3][0][0], poses[3][0][2], 'kx')
-        # plt.yaxis.label('Z')
-        # plt.xaxis.label('X')
+        print('Poses computed')
 
         points3D = LinearTriangulation(poses, inliers, getk())
-
         # visualize(points3D)
-
-        # plt.plot(points3D[:, 0, 0], points3D[:, 0, 2], 'bo')
-        # plt.plot(points3D[:, 1, 0], points3D[:, 1, 2], 'go')
-        # plt.plot(points3D[:, 2, 0], points3D[:, 2, 2], 'co')
-        # plt.plot(points3D[:, 3, 0], points3D[:, 3, 2], 'ko')
-
-        # print(len(inliers), len(inliers[0]), len(points3D), len(points3D[0]))
+        # import pdb
+        # pdb.set_trace()
         bestPose, points3D = DisambiguateCameraPose(poses, points3D)
-        # plt.plot(points3D[:,0],points3D[:,2],'ro')
-        # print(np.shape(points3D))
-        # plt.scatter(points3D)
-        # print(np.shape(points3D))
+        viz_3D(points3D)
+
         visualize(points3D, 'linear', file= "output/"+str(key)+".png")
         print('Non linear triangulation')
-        points = NonLinearTraingualtion(bestPose[0], bestPose[1], getk(), inliers[0], inliers[1], points3D)
-        visualize(points, 'non linear',file= "output/"+"NT"+str(key)+".png")
-        print(np.mean(abs(points3D - points)))
-        print('done')
+        # points = NonLinearTraingualtion(bestPose[0], bestPose[1], getk(), inliers[0], inliers[1], points3D)
+        # visualize(points, 'non linear',file= "output/"+"NT"+str(key)+".png")
+        # print(np.mean(abs(points3D - points)))
+        # print('done')
 
 
         # R,C = PnpRANSAC(inliers, points3D,getk())
