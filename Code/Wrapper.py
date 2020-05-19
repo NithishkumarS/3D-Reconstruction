@@ -40,8 +40,10 @@ from DisambiguateCameraPose import *
 from NonLinearTriangulation import *
 from LinearPnP import *
 from PnPRANSAC import *
+from NonlinearPnp import *
 import matplotlib.pyplot as plt
 import pickle
+from PySBA import *
 
 def graphPoints(points):
     print(np.shape(points))
@@ -92,6 +94,34 @@ def plotCamera(R,C,color):
 
     return plt
 
+def camera2vector(R,C,K):
+    V = np.zeros((9))
+    t = cv2.Rodrigues(R)[0].T[0]
+    V[:3] = t
+    V[3:6] = C[:,0]
+    V[6] = K[0,0]
+    V[7] = K[0,2]
+    V[8] = K[1,2]
+
+    return V
+
+def appendList(vec,ele):
+    vec = list(vec)
+    vec.append(ele)
+    return vec
+
+def reprojection_error(xs, Xs, P):
+    # X = np.concatenate([X,np.array([1])])
+    
+    print(np.shape(xs[0]))
+    print(np.shape(Xs[0]))
+    error = 0
+    for (x,X) in zip(xs,Xs):
+        if len(Xs[0]) == 3:
+            X = np.concatenate([X, np.array([1])])
+        error += (x[0]- np.dot(P[0],X) / np.dot(P[2], X))**2 + (x[1]- np.dot(P[1],X) / np.dot(P[2], X))**2
+    return  error/len(xs)
+
 def main():
 
     # Add any Command Line arguments here
@@ -124,68 +154,165 @@ def main():
     pickleFile.close()
 
     print('got inliers ')
+    key = "12"
+    info = data[key]
+    data.pop(key,None)
+    
+    F = info[0]
+    inliers = np.array(info[1])
+    matches = info[2]
+    cv2.imshow('matches', cv2.resize(matches, (0, 0), fx=0.5, fy=0.5))
+    E = getEssentialMatrix(F, getk())
+    poses = ExtractCameraPose(E,getk())
+
+    plt.ylabel('Z')
+    plt.xlabel('X')
+    total_points = []
+    colors = 'bgcrmy'
+    count = []
+    for i in range(4):
+        points3D = LinearTriangulation(poses[i][1],poses[i][0], inliers, getk())
+        plotCamera(poses[i][1],poses[i][0],colors[i])
+        # plt.plot(points3D[:,0],points3D[:,2],colors[i]+'o')
+        total_points.append(points3D)
+        count.append(DisambiguateCameraPose(poses[i],points3D))
+    bestPose = poses[np.argmax(count)]
+    points3D = total_points[np.argmax(count)]
+    P = np.dot(getk(),np.hstack((bestPose[1], -np.dot(bestPose[1],bestPose[0]))))
+    error1 = reprojection_error(inliers[:,0],points3D,P)
+    error2 = reprojection_error(inliers[:,1],points3D,P)
+    error = .5*(error1+error2)
+    print('Linear reprojection',error)
+    # visualize(points3D)
+    # plt.show()
+    plt.figure()
+    # plotCamera(bestPose[1],bestPose[0],'r')
+    plt.plot(points3D[:,0],points3D[:,2],'go')
+    plt.savefig('../Output/linear'+key+'.png')
+    # cv2.waitKey(0)
+  	# plt.show()
+
+    print('Non linear triangulation')
+    points = NonLinearTraingualtion(bestPose[1], bestPose[0], getk(), inliers[:,0], inliers[:,1], points3D)
+    handle =  open('tri.pkl','wb')
+    pickle.dump(points,handle)
+    handle.close()
+
+    pickleFile = open('tri.pkl','rb')
+    points = pickle.load(pickleFile)
+    pickleFile.close()
+    plt.plot(points[:,0],points[:,2],'ro')
+    plt.savefig('../Output/nonlinear'+key+'.png')
+
+    points3D = points[:,:3]
+
+    error1 = reprojection_error(inliers[:,0],points,P)
+    error2 = reprojection_error(inliers[:,1],points,P)
+    error = .5*(error1+error2)
+    print('Non-Linear reprojection',error)
+
+    points = points[:,:3]
+
+    # Bundle Adjustment Setup
+    cameraArray = []
+    cameraArray.append(camera2vector(np.eye(3),np.zeros((3,1)),getk()))
+    cameraArray.append(camera2vector(bestPose[1],bestPose[0],getk()))
+
+
+    # observations = points
+    points_ind = range(len(points))
+    points_ind.extend(range(len(points)))
+    camera_ind = np.zeros((2*len(points3D)),dtype=int)
+    camera_ind[len(points3D):] += 1
+    camera_ind = list(camera_ind)
+    points2D = list(np.vstack((inliers[:,0],inliers[:,1])))
+
+    Rset = []
+    Cset = []
+    Rset.append(bestPose[1])
+    Cset.append(bestPose[0])
+    inc = 0
+    params =[0,0,0]
 
     for key, info in data.items():
-    	info = data["12"]
-    	key = "12"
-        F = info[0]
-        inliers = np.array(info[1])
-        matches = info[2]
-        cv2.imshow('matches', cv2.resize(matches, (0, 0), fx=0.5, fy=0.5))
-        E = getEssentialMatrix(F, getk())
-        poses = ExtractCameraPose(E,getk())
+        cameraPoints = []
+        worldPoints = []
+        print(key)
+        if key[0] != '1' and key[0] != '2' :
+            print('Broke')
+            continue
+        initial_pose = cameraArray[int(key[0])-1]
+        R2 = cv2.Rodrigues(initial_pose[:3])[0]
+        C2 = np.array(initial_pose[3:6,np.newaxis])
+        matches = np.array(info[3])
+        # print(matches[:15])
+        ele = int(key[0])-1
+        i_inc = 0
+        points3D_inc = len(points3D)
+        for i in inliers:
+            for j in matches:
+                if list(i[ele]) == list(j[0]):
+                    cameraPoints.append([j[0],j[1]])
+                    worldPoints.append(points[i_inc])
+                    camera_ind.append(len(cameraArray))
+                    points_ind.append(i_inc)
+                    points2D.append([j[1][0],j[1][1]])
+                    # Adds camera index
+                    # camera_ind[i_inc] = appendList(camera_ind[i_inc],int(key[1])-1)
+                    # points_ind[i_inc] = appendList(points_ind[i_inc],points3D_inc)
+                    
+                    # points2D[i_inc][0] = appendList(points2D[i_inc][0],j[1][0])
+                    # points2D[i_inc][1] = appendList(points2D[i_inc][0],j[1][1])
+                    points3D_inc += 1
+                    break
+            i_inc += 1
 
-        # plt.plot(0, 0, 'rx')
-        # plotCamera(poses[0][1],poses[0][0],'b')
-        # plotCamera(poses[1][1],poses[1][0],'g')
-        # plotCamera(poses[2][1],poses[2][0],'c')
-        # plotCamera(poses[3][1],poses[3][0],'r')
+        # Estimate New Camera Position
+        R,C = PnpRANSAC(cameraPoints, worldPoints,getk())
+        P = np.dot(getk(),np.hstack((R, -np.dot(R,C[:,np.newaxis]))))
+        error = reprojection_error(np.array(cameraPoints)[:,1],worldPoints,P)
+        print('Linear PnP',error)
 
+        R,C = NonLinearPnp(R, C, getk(), np.array(cameraPoints)[:,1], worldPoints)
+        P = np.dot(getk(),np.hstack((R, -np.dot(R,C))))
+        error = reprojection_error(np.array(cameraPoints)[:,1],worldPoints,P)
+        print('Non-Linear PnP',error)
+        cameraArray.append(camera2vector(R,C,getk()))
+        # Project New 3D Points
+        worldPoints = LinearTriangulation(R,C, cameraPoints, getk(),R2,C2)
+        worldPoints = NonLinearTraingualtion(R, C, getk(), inliers[:,0], inliers[:,1], points3D,R2,C2)
+        error = reprojection_error(np.array(cameraPoints)[:,1],worldPoints,P)
+        print('Before BA',error)
+        
+        # Plot Camera and Points for latest Frame
+        # plt.plot(worldPoints[:,0],worldPoints[:,2],colors[inc]+'o')
+        plt.figure
+        plotCamera(R,C,colors[inc])
+        plt.savefig('../Output/pnp'+key+'.png')
 
-        plt.ylabel('Z')
-        plt.xlabel('X')
-        total_points = []
-        colors = 'bgcr'
-        count = []
-        for i in range(4):
-            points3D = LinearTriangulation(poses[i], inliers, getk())
-            plotCamera(poses[i][1],poses[i][0],colors[i])
-            plt.plot(points3D[:,0],points3D[:,2],colors[i]+'o')
-            total_points.append(points3D)
-            count.append(DisambiguateCameraPose(poses[i],points3D))
-        bestPose = poses[np.argmax(count)]
-        points3D = total_points[np.argmax(count)]
-        # visualize(points3D)
+        # Bundle Adjustment Setup
+        points3D = np.vstack((points3D,worldPoints))
 
+        pysba = PySBA(np.array(cameraArray),points3D,points2D, np.array(camera_ind),np.array(points_ind))
+        params = pysba.bundleAdjust()
+        error = reprojection_error(np.array(cameraPoints),params[1][-len(cameraPoints):],P)
+        print('Non-Linear PnP',error)
         plt.figure()
-        plotCamera(bestPose[1],bestPose[0],'r')
-        plt.plot(points3D[:,0],points3D[:,2],'ro')
-        # cv2.waitKey(0)
-       	# plt.show()
-
-        # visualize(points3D, 'linear', file= "output/"+str(key)+".png")
-        # print('Non linear triangulation')
-        points = NonLinearTraingualtion(bestPose[1], bestPose[0], getk(), inliers[:,0], inliers[:,1], points3D)
-        handle =  open('tri.pkl','wb')
-        pickle.dump(points,handle)
-        handle.close()
+        plt.plot(params[1][0],params[1][2],'ko')
+        plt.savefig('../Output/BA'+key+'.png')
+        # plt.show()
+        inc += 1
     
-        pickleFile = open('tri.pkl','rb')
-        points = pickle.load(pickleFile)
-        points = points[:,:3]
-        pickleFile.close()
+    points3D = params[1]
+    plt.plot(points3D[0],points3D[2],'ko')
 
-        R,C = PnpRANSAC(inliers, points,getk())
-        plotCamera(R,C,'c')
-        plt.plot(points[:,0],points[:,2],'co')
-        plt.show()
         # print(np.mean(abs(points3D - points)))
-        print('done')
+    # print('done')
 
-        rotmatrix_to_angles(R)
+    # rotmatrix_to_angles(R)
         # print(key,R,C)
 
-        cv2.waitKey(1)
+    cv2.waitKey(1)
         # plt.show()
 
 if __name__ == '__main__':

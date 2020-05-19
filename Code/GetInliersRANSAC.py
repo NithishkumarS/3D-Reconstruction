@@ -3,65 +3,12 @@ import random
 import sys
 # sys.path.remove('/opt/ros/kinetic/lib/python2.7/dist-packages')
 import cv2
+import copy 
 
 # print(cv2.__version__)
 import fileinput, optparse
 # from matplotlib import pyplot as plt
 from EstimateFundamentalMatrix import *
-
-def getMatches(img1, img2):
-    # Initiate SIFT detector
-
-    # img1_g = cv2.cvtColor(img1, cv2.COLOR_BGR2GRAY)
-    # img2_g = cv2.cvtColor(img2, cv2.COLOR_BGR2GRAY)
-
-    # orb = cv2.ORB()
-    # # create BFMatcher object
-    # # find the keypoints and descriptors with SIFT
-    # kp1, des1 = orb.detectAndCompute(img1_g, None)
-    # zkcn
-    #
-    # kp2, des2 = orb.detectAndCompute(img2_g, None)
-    #
-    #
-    # bf = cv2.BFMatcher(cv2.NORM_HAMMING, crossCheck=True)
-    #
-    # # Match descriptors.
-    # matches = bf.match(des1, des2)
-    #
-    #
-    # # Sort them in the order of their distance.
-    # matches = sorted(matches, key=lambda x: x.distance)
-    #
-    # # Draw first 10 matches.
-    # img3 = cv2.drawMatches(img1, kp1, img2, kp2, matches[:10], flags=2)
-    #
-    # plt.imshow(img3), plt.show()
-    sift = cv2.xfeatures2d.SIFT_create()
-    # sift = cv2.SIFT()
-    img1_g = cv2.cvtColor(img1, cv2.COLOR_BGR2GRAY)
-    img2_g = cv2.cvtColor(img2, cv2.COLOR_BGR2GRAY)
-
-    # find the keypoints and descriptors with SIFT
-    kp1, des1 = sift.detectAndCompute(img1_g, None)
-    kp2, des2 = sift.detectAndCompute(img2_g, None)
-
-    # BFMatcher with default params
-    bf = cv2.BFMatcher()
-    matches = bf.knnMatch(des1, des2, k=2)
-
-    # Apply ratio test
-    good = []
-    for m, n in matches:
-        if m.distance < 0.75 * n.distance:
-            good.append([m])
-
-    # cv2.drawMatchesKnn expects list of lists as matches.
-    # img3 = cv2.drawMatchesKnn(img1, kp1, img2, kp2, good, flags=2)
-
-    # plt.imshow(img3), plt.show()
-
-    return matches
 
 def importMatches():
     Matches = {}
@@ -88,8 +35,6 @@ def importMatches():
     return Matches
     
 def drawMatches(matches,combed_img, width,color):
-    # width = np.shape(img1)[1]
-    # combed_img = np.hstack((img1,img2))
     matches = np.array(matches)
     print(np.shape(matches))
     matches[:,1,0] = matches[:,1,0]+width-1
@@ -99,37 +44,26 @@ def drawMatches(matches,combed_img, width,color):
         yp = int(match[1,1])
         xp = int(match[1,0])
         combed_img = cv2.line(combed_img,(x,y),(xp,yp),color)
-        # combed_img = cv2.line(combed_img,(x,y),(xp,yp),[0,255,0])
-        # cv2.circle(combed_img, (x, y), 3, 255, -1)
-        # cv2.circle(combed_img, (xp, yp), 3, 255, -1)
-    # cv2.imshow(name,combed_img)
-    # cv2.waitKey(0)
     return combed_img
 
 
 def getInliersRANSAC(M,images):
-
-    # matches = getMatches(img1,img2)
     Matches = importMatches()
     Data = {}
-    episilon = .07
+    episilon = .2
     for key,matches  in Matches.items():
         # print(key)
-        if key != '12':
-            continue
+        # if key != '12':
+        #     continue
         
         image1 = images[int(key[0])-1]
         image2 = images[int(key[1])-1]
         width = np.shape(image1)[1]
         combed_img = np.hstack((image1,image2))
-        # cv2.imshow('image 1',image1)
-        # cv2.imshow('image 2',image2)
-        # print(np.shape(matches))
-        # print(matches[0])
+        orig_matches = copy.copy(np.array(matches))
+
         drawnMatches = drawMatches(matches,combed_img, width,[0,0,255])
-        # cv2.imshow('matches',cv2.resize(drawnMatches,(0,0),fx=0.5, fy=0.5))
-        # cv2.waitKey(0)
-        print(np.shape(matches))
+
         c1 = np.hstack((np.array(matches)[:,0], np.ones((len(matches),1))) )
         c2 = np.hstack((np.array(matches)[:,1], np.ones((len(matches),1))) )
         S_inliers = []
@@ -138,7 +72,6 @@ def getInliersRANSAC(M,images):
         best_F =[]
         for i in range(M):
             l = range(len(c2))
-            # print(len(l))
             rand_idx = random.sample(l, k=8)
             # print(type(c1[rand_idx]))
             # F = computeFundamentalMatrix(c1[rand_idx], c2[rand_idx])
@@ -174,7 +107,7 @@ def getInliersRANSAC(M,images):
         X2 = []
         l = range(len(S))
         if len(S) >=8:
-            for r in random.sample(l, k=8):
+            for r in range(len(S)):
                 X1.append(c1[S_inliers[r]])
                 X2.append(c2[S_inliers[r]])
             # F= computeFundamentalMatrix(np.array(X1), np.array(X2))
@@ -190,8 +123,10 @@ def getInliersRANSAC(M,images):
         # cv2.imshow('inliers',cv2.resize(drawn_inliers,(0,0), fx=0.5,fy=0.5))
         # print(len(matches),len(S_points_inliers))
         # cv2.waitKey(0)
-
-        Data[key] = [F,S_points_inliers,drawn_inliers]
+        cv2.imwrite("matches"+key+'.jpg',cv2.resize(drawn_inliers,(0,0), fx=0.5,fy=0.5))
+        print(key)
+        print(100.0*len(S_points_inliers)/len(matches),'%')
+        Data[key] = [F,S_points_inliers,drawn_inliers,orig_matches]
     return Data
 
 # b = getInliersRANSAC(cv2.imread('../Data/1.jpg'),cv2.imread('../Data/2.jpg') , 1)
